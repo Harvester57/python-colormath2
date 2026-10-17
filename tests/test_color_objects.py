@@ -113,7 +113,18 @@ class SpectralConversionTestCase(BaseColorConversionTest):
         """
 
         self.color.spec_530nm = -0.0736
-        # TODO: Convert here.
+        xyz = convert_color(self.color, XYZColor)
+        self.assertColorMatch(xyz, XYZColor(0.114, 0.093, 0.047))
+
+    def test_conversion_to_xyz_illuminant_override(self):
+        from colormath2 import spectral_constants
+
+        xyz = convert_color(
+            self.color,
+            XYZColor,
+            illuminant_override=spectral_constants.REF_ILLUM_TABLE["d50"],
+        )
+        self.assertColorMatch(xyz, XYZColor(0.115, 0.099, 0.047))
 
     def test_convert_to_self(self):
         same_color = convert_color(self.color, SpectralColor)

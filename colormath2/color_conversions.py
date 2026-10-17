@@ -193,7 +193,7 @@ def Spectral_to_XYZ(cobj, illuminant_override=None, *args, **kwargs):
     Converts spectral readings to XYZ.
     """
     # If the user provides an illuminant_override numpy array, use it.
-    if illuminant_override:
+    if illuminant_override is not None:
         reference_illum = illuminant_override
     else:
         # Otherwise, look up the illuminant from known standards based
@@ -215,7 +215,7 @@ def Spectral_to_XYZ(cobj, illuminant_override=None, *args, **kwargs):
         std_obs_z = spectral_constants.STDOBSERV_Z2
 
     # This is a NumPy array containing the spectral distribution of the color.
-    sample = cobj.get_numpy_array()
+    sample = cobj.get_numpy_array().clip(min=0.0)
 
     # The denominator is constant throughout the entire calculation for X,
     # Y, and Z coordinates. Calculate it once and re-use.
