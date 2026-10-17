@@ -377,28 +377,28 @@ class Hunt(object):
         """
         if x_p is None:
             x_p = x_b
-            logger.warn("Approximated x_p with x_b.")
+            logger.warning("Approximated x_p with x_b.")
         if y_p is None:
             y_p = y_b
-            logger.warn("Approximated y_p with y_b.")
+            logger.warning("Approximated y_p with y_b.")
         if z_p is None:
-            z_p = y_b
-            logger.warn("Approximated z_p with z_b.")
+            z_p = z_b
+            logger.warning("Approximated z_p with z_b.")
 
         if n_cb is None:
             n_cb = 0.725 * (y_w / y_b) ** 0.2
-            logger.warn("Approximated n_cb.")
+            logger.warning("Approximated n_cb.")
         logger.debug("N_cb: {}".format(n_cb))
         if n_bb is None:
             n_bb = 0.725 * (y_w / y_b) ** 0.2
-            logger.warn("Approximated n_bb.")
-        logger.debug("N_bb: {}".format(n_cb))
+            logger.warning("Approximated n_bb.")
+        logger.debug("N_bb: {}".format(n_bb))
 
         if l_as is None:
-            logger.warn("Approximated scotopic luminance.")
+            logger.warning("Approximated scotopic luminance.")
             if cct_w is None:
                 cct_w = self._get_cct(x_w, y_w, z_w)
-                logger.warn("Approximated cct_w: {}".format(cct_w))
+                logger.warning("Approximated cct_w: {}".format(cct_w))
             l_as = 2.26 * l_a
             l_as *= ((cct_w / 4000) - 0.4) ** (1 / 3)
         logger.debug("LA_S: {}".format(l_as))
@@ -410,14 +410,35 @@ class Hunt(object):
         elif s is None and s_w is None:
             s = y
             s_w = y_w
-            logger.warn(
+            logger.warning(
                 "Approximated scotopic response to stimulus and reference white."
             )
 
         if p is None:
-            logger.warn(
+            logger.warning(
                 "p not supplied. Model will not account for simultaneous "
                 "chromatic contrast ."
+            )
+
+        if any(
+            numpy.ndim(v) > 0
+            for v in (x, y, z, x_b, y_b, z_b, x_w, y_w, z_w, x_p, y_p, z_p)
+        ):
+            (
+                x,
+                y,
+                z,
+                x_b,
+                y_b,
+                z_b,
+                x_w,
+                y_w,
+                z_w,
+                x_p,
+                y_p,
+                z_p,
+            ) = numpy.broadcast_arrays(
+                x, y, z, x_b, y_b, z_b, x_w, y_w, z_w, x_p, y_p, z_p
             )
 
         xyz = numpy.array([x, y, z])
@@ -561,7 +582,7 @@ class Hunt(object):
 
     @classmethod
     def xyz_to_rgb(cls, xyz):
-        return cls.xyz_to_rgb_m.dot(xyz)
+        return numpy.einsum("ij,j...->i...", cls.xyz_to_rgb_m, xyz)
 
     def _adaptation(
         self,
@@ -591,39 +612,42 @@ class Hunt(object):
         y_w = xyz_w[1]
         y_b = xyz_b[1]
 
-        h_rgb = 3 * rgb_w / (rgb_w.sum())
+        h_rgb = 3 * rgb_w / (rgb_w.sum(axis=0))
         logger.debug("H_RGB: {}".format(h_rgb))
 
         # Chromatic adaptation factors
-        if not discount_illuminant:
-            f_rgb = (1 + (l_a ** (1 / 3)) + h_rgb) / (
-                1 + (l_a ** (1 / 3)) + (1 / h_rgb)
-            )
-        else:
-            f_rgb = numpy.ones(numpy.shape(h_rgb))
+        f_rgb = numpy.where(
+            discount_illuminant,
+            1.0,
+            (1 + (l_a ** (1 / 3)) + h_rgb) / (1 + (l_a ** (1 / 3)) + (1 / h_rgb)),
+        )
         logger.debug("F_RGB: {}".format(f_rgb))
 
         # Adaptation factor
-        if helson_judd:
-            d_rgb = self._f_n((y_b / y_w) * f_l * f_rgb[1]) - self._f_n(
-                (y_b / y_w) * f_l * f_rgb
+        if numpy.any(helson_judd):
+            d_rgb = numpy.where(
+                helson_judd,
+                self._f_n((y_b / y_w) * f_l * f_rgb[1])
+                - self._f_n((y_b / y_w) * f_l * f_rgb),
+                0.0,
             )
-            assert d_rgb[1] == 0
+            assert numpy.all(d_rgb[1] == 0)
         else:
             d_rgb = numpy.zeros(numpy.shape(f_rgb))
         logger.debug("D_RGB: {}".format(d_rgb))
 
         # Cone bleaching factors
-        rgb_b = (10 ** 7) / ((10 ** 7) + 5 * l_a * (rgb_w / 100))
-        logger.debug("B_RGB: {}".format(rgb_b))
+        b_rgb = (10 ** 7) / ((10 ** 7) + 5 * l_a * (rgb_w / 100))
+        logger.debug("B_RGB: {}".format(b_rgb))
 
         if xyz_p is not None and p is not None:
             logger.debug("Account for simultaneous chromatic contrast")
             rgb_p = self.xyz_to_rgb(xyz_p)
+            rgb_b = self.xyz_to_rgb(xyz_b)
             rgb_w = self.adjust_white_for_scc(rgb_p, rgb_b, rgb_w, p)
 
         # Adapt rgb using modified
-        rgb_a = 1 + rgb_b * (self._f_n(f_l * f_rgb * rgb / rgb_w) + d_rgb)
+        rgb_a = 1 + b_rgb * (self._f_n(f_l * f_rgb * rgb / rgb_w) + d_rgb)
         logger.debug("RGB_A: {}".format(rgb_a))
 
         return rgb_a
@@ -656,10 +680,10 @@ class Hunt(object):
         and skylight chromaticities.
         Applied Optics, 38(27), 5703-5709.
         """
-        x_e = 0.3320
-        y_e = 0.1858
+        x_e = 0.3366
+        y_e = 0.1735
 
-        n = ((x / (x + z + z)) - x_e) / ((y / (x + z + z)) - y_e)
+        n = ((x / (x + y + z)) - x_e) / ((y / (x + y + z)) - y_e)
 
         a_0 = -949.86315
         a_1 = 6253.80338
