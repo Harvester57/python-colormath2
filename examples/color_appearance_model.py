@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# Does some sys.path manipulation so we can run examples in-place.
+# noinspection PyUnresolvedReferences
+import example_config  # noqa
+
 from colormath2.color_appearance_models import CIECAM02
 from colormath2.color_objects import XYZColor
 

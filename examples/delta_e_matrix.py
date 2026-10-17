@@ -11,7 +11,7 @@ cPickled (n,3) numpy array LAB values such that row q maps to
 index q in the lab color list
 """
 
-import sys
+import os
 import csv
 import bz2
 
@@ -26,12 +26,10 @@ from colormath2.color_objects import LabColor
 
 
 # load list of 1000 random colors from the XKCD color chart
-if sys.version_info >= (3, 0):
-    reader = csv.DictReader(bz2.open("lab_matrix.csv.bz2", mode="rt"))
+matrix_path = os.path.join(os.path.dirname(__file__), "lab_matrix.csv.bz2")
+with bz2.open(matrix_path, mode="rt", encoding="utf-8") as matrix_file:
+    reader = csv.DictReader(matrix_file)
     lab_matrix = np.array([list(map(float, row.values())) for row in reader])
-else:
-    reader = csv.DictReader(bz2.BZ2File("lab_matrix.csv.bz2"))
-    lab_matrix = np.array([map(float, row.values()) for row in reader])
 
 color = LabColor(lab_l=69.34, lab_a=-0.88, lab_b=-52.57)
 lab_color_vector = np.array([color.lab_l, color.lab_a, color.lab_b])
