@@ -521,7 +521,12 @@ def XYZ_to_RGB(cobj, target_rgb, *args, **kwargs):
         )
         # Get the adjusted XYZ values, adapted for the target illuminant.
         temp_X, temp_Y, temp_Z = apply_chromatic_adaptation(
-            temp_X, temp_Y, temp_Z, orig_illum=cobj.illuminant, targ_illum=target_illum
+            temp_X,
+            temp_Y,
+            temp_Z,
+            orig_illum=cobj.illuminant,
+            targ_illum=target_illum,
+            observer=cobj.observer,
         )
         logger.debug("  \\*   New values: %.3f, %.3f, %.3f", temp_X, temp_Y, temp_Z)
 
@@ -598,7 +603,7 @@ def RGB_to_XYZ(cobj, target_illuminant=None, *args, **kwargs):
 
         for channel in ["r", "g", "b"]:
             V = getattr(cobj, "rgb_" + channel)
-            linear_channels[channel] = math.pow(V, gamma)
+            linear_channels[channel] = math.copysign(math.pow(abs(V), gamma), V)
 
     # Apply an RGB working space matrix to the XYZ values (matrix mul).
     xyz_x, xyz_y, xyz_z = apply_RGB_matrix(

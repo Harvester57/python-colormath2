@@ -79,9 +79,22 @@ class ColorConversionTestCase(unittest.TestCase):
         for colorspace in (AdobeRGBColor, BT2020Color, sRGBColor):
             for a in (0.0, 0.01, 0.18, 1.0):
                 RGB = [a] * 3
-            np.testing.assert_allclose(
-                XYZ_to_RGB(RGB_to_XYZ(colorspace(*RGB)), colorspace).get_value_tuple(),
-                RGB,
-                rtol=1e-5,
-                atol=1e-5,
-            )
+                np.testing.assert_allclose(
+                    XYZ_to_RGB(
+                        RGB_to_XYZ(colorspace(*RGB)), colorspace
+                    ).get_value_tuple(),
+                    RGB,
+                    rtol=1e-5,
+                    atol=1e-5,
+                )
+
+    def test_negative_gamma_rgb_to_xyz_and_observer_xyz_to_rgb(self):
+        xyz = RGB_to_XYZ(AdobeRGBColor(-0.1, 0.5, 0.5))
+        self.assertGreater(xyz.xyz_y, 0.0)
+        rgb_2 = XYZ_to_RGB(
+            XYZColor(0.3, 0.2, 0.3, observer="2", illuminant="d50"), sRGBColor
+        )
+        rgb_10 = XYZ_to_RGB(
+            XYZColor(0.3, 0.2, 0.3, observer="10", illuminant="d50"), sRGBColor
+        )
+        self.assertNotAlmostEqual(rgb_2.rgb_r, rgb_10.rgb_r, places=4)
