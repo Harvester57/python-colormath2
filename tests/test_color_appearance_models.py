@@ -460,6 +460,7 @@ class TestLLABColorAppearanceModel(ColorAppearanceTest):
 class TestCIECAM02ColorAppearanceModel(ColorAppearanceTest):
     fixture_path = "ciecam02.csv"
     output_parameter_dict = {
+        "h": "hue_angle",
         "J": "lightness",
         "Q": "brightness",
         "C": "chroma",
@@ -512,7 +513,158 @@ class TestCIECAM02ColorAppearanceModel(ColorAppearanceTest):
         )
 
 
-@unittest.skip
-class TestCIECAM02m1ColorAppearanceModel(ColorAppearanceTest):
-    # TODO: Test CIECAM02-m1 model
-    pass
+class TestCIECAM02m1ColorAppearanceModel(TestCIECAM02ColorAppearanceModel):
+    def create_model_from_data(self, data):
+        from colormath2.color_appearance_models import CIECAM02m1
+
+        return CIECAM02m1(
+            data["X"],
+            data["Y"],
+            data["Z"],
+            data["X_W"],
+            data["Y_W"],
+            data["Z_W"],
+            0.2 * data["X_W"],
+            data["Y_b"],
+            0.2 * data["Z_W"],
+            data["L_A"],
+            data["c"],
+            data["N_c"],
+            data["F"],
+            p=0.0,
+        )
+
+    def test_simultaneous_contrast(self):
+        from colormath2.color_appearance_models import CIECAM02m1
+
+        m0 = CIECAM02m1(
+            19.01,
+            20,
+            21.78,
+            95.05,
+            100,
+            108.88,
+            40.0,
+            20,
+            10.0,
+            318.31,
+            0.69,
+            1,
+            1,
+            0.0,
+        )
+        m1 = CIECAM02m1(
+            19.01,
+            20,
+            21.78,
+            95.05,
+            100,
+            108.88,
+            40.0,
+            20,
+            10.0,
+            318.31,
+            0.69,
+            1,
+            1,
+            -0.5,
+        )
+        assert m1.chroma > m0.chroma
+
+        # Verify N=3 array stimulus with scalar whitepoint/background and array d/p
+        x = numpy.array([19.01, 57.06, 3.53])
+        y = numpy.array([20.0, 43.06, 6.56])
+        z = numpy.array([21.78, 31.96, 2.14])
+        c_arr = CIECAM02(
+            x,
+            y,
+            z,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=numpy.array([False, True, False]),
+        )
+        c_s0 = CIECAM02(
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=False,
+        )
+        c_s1 = CIECAM02(
+            57.06,
+            43.06,
+            31.96,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=True,
+        )
+        c_s2 = CIECAM02(
+            3.53,
+            6.56,
+            2.14,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=False,
+        )
+        assert_allclose(
+            c_arr.lightness, [c_s0.lightness, c_s1.lightness, c_s2.lightness]
+        )
+
+        m_arr = CIECAM02m1(
+            numpy.array([19.01, 19.01, 19.01]),
+            numpy.array([20.0, 20.0, 20.0]),
+            numpy.array([21.78, 21.78, 21.78]),
+            95.05,
+            100.0,
+            108.88,
+            40.0,
+            20.0,
+            10.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            numpy.array([0.0, -0.5, 0.0]),
+        )
+        assert_allclose(m_arr.chroma, [m0.chroma, m1.chroma, m0.chroma])
+
+        c_2d = CIECAM02(
+            numpy.array([[19.01, 57.06], [3.53, 19.01]]),
+            numpy.array([[20.0, 43.06], [6.56, 20.0]]),
+            numpy.array([[21.78, 31.96], [2.14, 21.78]]),
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+        )
+        assert c_2d.lightness.shape == (2, 2)
+        assert_allclose(c_2d.lightness[0, 0], c_s0.lightness)
