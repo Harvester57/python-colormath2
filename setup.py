@@ -4,7 +4,8 @@ import colormath2
 
 from setuptools import setup
 
-LONG_DESCRIPTION = open("README.rst").read()
+with open("README.rst", encoding="utf-8") as readme_file:
+    LONG_DESCRIPTION = readme_file.read()
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",
