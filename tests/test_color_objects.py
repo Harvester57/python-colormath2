@@ -305,6 +305,12 @@ class RGBConversionTestCase(BaseColorConversionTest):
         self.assertEqual(low_b.clamped_rgb_g, low_b.rgb_g)
         self.assertEqual(low_b.clamped_rgb_b, 0.0)
 
+        upscaled_oob = sRGBColor(300, -10, 128, is_upscaled=True)
+        self.assertEqual(upscaled_oob.clamped_rgb_r, 1.0)
+        self.assertEqual(upscaled_oob.clamped_rgb_g, 0.0)
+        self.assertEqual(upscaled_oob.get_upscaled_value_tuple(), (255, 0, 128))
+        self.assertEqual(upscaled_oob.get_rgb_hex(), "#ff0080")
+
     def test_to_xyz_and_back(self):
         xyz = convert_color(self.color, XYZColor)
         rgb = convert_color(xyz, sRGBColor)
