@@ -968,11 +968,11 @@ class IPTColor(ColorBase):
         """
         super(IPTColor, self).__init__()
         #: I coordinate
-        self.ipt_i = ipt_i
+        self.ipt_i = float(ipt_i)
         #: P coordinate
-        self.ipt_p = ipt_p
+        self.ipt_p = float(ipt_p)
         #: T coordinate
-        self.ipt_t = ipt_t
+        self.ipt_t = float(ipt_t)
 
     @property
     def hue_angle(self):
