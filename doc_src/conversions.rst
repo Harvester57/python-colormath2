@@ -77,7 +77,7 @@ keyword when using :py:func:`colormath2.color_conversions.convert_color`.
     from colormath2.color_objects import XYZColor, sRGBColor
     from colormath2.color_conversions import convert_color
 
-    rgb = RGBColor(0.1, 0.2, 0.3)
+    rgb = sRGBColor(0.1, 0.2, 0.3)
     xyz = convert_color(rgb, XYZColor, target_illuminant='d50')
 
 RGB conversions and out-of-gamut coordinates
