@@ -288,3 +288,13 @@ class DeltaETestCase(unittest.TestCase):
     def test_non_lab_color(self):
         other_color = sRGBColor(1.0, 0.5, 0.3)
         self.assertRaises(ValueError, delta_e_cie2000, self.color1, other_color)
+
+    def test_lab_color_subclass(self):
+        class CustomLabColor(LabColor):
+            pass
+
+        sub1 = CustomLabColor(lab_l=0.9, lab_a=16.3, lab_b=-2.22)
+        sub2 = CustomLabColor(lab_l=0.7, lab_a=14.2, lab_b=-1.80)
+        self.assertAlmostEqual(
+            delta_e_cie2000(sub1, sub2), delta_e_cie2000(self.color1, self.color2)
+        )
