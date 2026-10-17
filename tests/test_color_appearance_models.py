@@ -181,9 +181,9 @@ class TestHuntColorAppearanceModel(ColorAppearanceTest):
             data["X"],
             data["Y"],
             data["Z"],
-            data["X_W"],
+            0.2 * data["X_W"],
             0.2 * data["Y_W"],
-            data["Z_W"],
+            0.2 * data["Z_W"],
             data["X_W"],
             data["Y_W"],
             data["Z_W"],
@@ -192,6 +192,123 @@ class TestHuntColorAppearanceModel(ColorAppearanceTest):
             n_b=data["N_b"],
             cct_w=data["T"],
         )
+
+    def test_hunt_cct_and_options(self):
+        cct_d65 = Hunt._get_cct(95.05, 100.0, 108.88)
+        assert_allclose(cct_d65, 6504.0, rtol=0.01)
+
+        # Verify z_p fallback defaults to z_b (when p != 0 and x_p/y_p/z_p are None,
+        # proximal field equals background so adjust_white_for_scc is identity)
+        m_no_p = Hunt(
+            19.01,
+            20.0,
+            21.78,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+        )
+        m_default_zp = Hunt(
+            19.01,
+            20.0,
+            21.78,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            p=-0.5,
+        )
+        assert_allclose(m_default_zp.chroma, m_no_p.chroma, rtol=1e-12)
+
+        # Verify simultaneous chromatic contrast with distinct proximal field
+        # and verify scalar vs 1D (N=2, N=3) and 2D array consistency
+        s0 = Hunt(
+            19.01,
+            20.0,
+            21.78,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            x_p=40.0,
+            y_p=20.0,
+            z_p=10.0,
+            p=-0.5,
+            helson_judd=True,
+            discount_illuminant=False,
+        )
+        s1 = Hunt(
+            57.06,
+            43.06,
+            31.96,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            x_p=40.0,
+            y_p=20.0,
+            z_p=10.0,
+            p=-0.5,
+            helson_judd=True,
+            discount_illuminant=False,
+        )
+        assert s0.chroma > m_no_p.chroma
+
+        x = numpy.array([19.01, 57.06, 19.01])
+        y = numpy.array([20.0, 43.06, 20.0])
+        z = numpy.array([21.78, 31.96, 21.78])
+        m_arr = Hunt(
+            x,
+            y,
+            z,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            x_p=40.0,
+            y_p=20.0,
+            z_p=10.0,
+            p=-0.5,
+            helson_judd=True,
+            discount_illuminant=False,
+        )
+        assert_allclose(m_arr.lightness, [s0.lightness, s1.lightness, s0.lightness])
+        assert_allclose(m_arr.chroma, [s0.chroma, s1.chroma, s0.chroma])
+
+        # Verify 2D array stimulus support
+        x2d = numpy.array([[19.01, 57.06], [57.06, 19.01]])
+        y2d = numpy.array([[20.0, 43.06], [43.06, 20.0]])
+        z2d = numpy.array([[21.78, 31.96], [31.96, 21.78]])
+        m_2d = Hunt(
+            x2d, y2d, z2d, 19.01, 20.0, 21.78, 95.05, 100.0, 108.88, 318.31, 1.0, 75.0
+        )
+        assert m_2d.lightness.shape == (2, 2)
+        assert_allclose(m_2d.lightness[0, 0], m_no_p.lightness)
 
 
 class TestRLABColorAppearanceModel(ColorAppearanceTest):
