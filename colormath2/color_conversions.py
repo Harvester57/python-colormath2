@@ -69,9 +69,7 @@ def apply_RGB_matrix(var1, var2, var3, rgb_type, convtype="xyz_to_rgb"):
     return rgb_r, rgb_g, rgb_b
 
 
-class ConversionManager(object):
-    __metaclass__ = ABCMeta
-
+class ConversionManager(metaclass=ABCMeta):
     def __init__(self):
         self.registered_color_spaces = set()
 
@@ -148,16 +146,6 @@ class GraphConversionManager(ConversionManager):
         )
 
 
-class DummyConversionManager(ConversionManager):
-    def add_type_conversion(self, start_type, target_type, conversion_function):
-        pass
-
-    def get_conversion_path(self, start_type, target_type):
-        raise UndefinedConversionError(
-            start_type, target_type,
-        )
-
-
 _conversion_manager = GraphConversionManager()
 
 
@@ -193,7 +181,7 @@ def Spectral_to_XYZ(cobj, illuminant_override=None, *args, **kwargs):
     Converts spectral readings to XYZ.
     """
     # If the user provides an illuminant_override numpy array, use it.
-    if illuminant_override:
+    if illuminant_override is not None:
         reference_illum = illuminant_override
     else:
         # Otherwise, look up the illuminant from known standards based
@@ -215,7 +203,7 @@ def Spectral_to_XYZ(cobj, illuminant_override=None, *args, **kwargs):
         std_obs_z = spectral_constants.STDOBSERV_Z2
 
     # This is a NumPy array containing the spectral distribution of the color.
-    sample = cobj.get_numpy_array()
+    sample = cobj.get_numpy_array().clip(min=0.0)
 
     # The denominator is constant throughout the entire calculation for X,
     # Y, and Z coordinates. Calculate it once and re-use.
@@ -250,7 +238,7 @@ def Lab_to_LCHab(cobj, *args, **kwargs):
     lch_c = math.sqrt(math.pow(float(cobj.lab_a), 2) + math.pow(float(cobj.lab_b), 2))
     lch_h = math.atan2(float(cobj.lab_b), float(cobj.lab_a))
 
-    if lch_h > 0:
+    if lch_h >= 0:
         lch_h = (lch_h / math.pi) * 180
     else:
         lch_h = 360 - (math.fabs(lch_h) / math.pi) * 180
@@ -305,7 +293,7 @@ def Luv_to_LCHuv(cobj, *args, **kwargs):
     lch_c = math.sqrt(math.pow(cobj.luv_u, 2.0) + math.pow(cobj.luv_v, 2.0))
     lch_h = math.atan2(float(cobj.luv_v), float(cobj.luv_u))
 
-    if lch_h > 0:
+    if lch_h >= 0:
         lch_h = (lch_h / math.pi) * 180
     else:
         lch_h = 360 - (math.fabs(lch_h) / math.pi) * 180
@@ -521,7 +509,12 @@ def XYZ_to_RGB(cobj, target_rgb, *args, **kwargs):
         )
         # Get the adjusted XYZ values, adapted for the target illuminant.
         temp_X, temp_Y, temp_Z = apply_chromatic_adaptation(
-            temp_X, temp_Y, temp_Z, orig_illum=cobj.illuminant, targ_illum=target_illum
+            temp_X,
+            temp_Y,
+            temp_Z,
+            orig_illum=cobj.illuminant,
+            targ_illum=target_illum,
+            observer=cobj.observer,
         )
         logger.debug("  \\*   New values: %.3f, %.3f, %.3f", temp_X, temp_Y, temp_Z)
 
@@ -598,7 +591,7 @@ def RGB_to_XYZ(cobj, target_illuminant=None, *args, **kwargs):
 
         for channel in ["r", "g", "b"]:
             V = getattr(cobj, "rgb_" + channel)
-            linear_channels[channel] = math.pow(V, gamma)
+            linear_channels[channel] = math.copysign(math.pow(abs(V), gamma), V)
 
     # Apply an RGB working space matrix to the XYZ values (matrix mul).
     xyz_x, xyz_y, xyz_z = apply_RGB_matrix(
@@ -734,7 +727,7 @@ def HSV_to_RGB(cobj, target_rgb, *args, **kwargs):
     V = cobj.hsv_v
 
     h_floored = int(math.floor(H))
-    h_sub_i = int(h_floored / 60) % 6
+    h_sub_i = (h_floored // 60) % 6
     var_f = (H / 60.0) - (h_floored // 60)
     var_p = V * (1.0 - S)
     var_q = V * (1.0 - var_f * S)
@@ -933,23 +926,6 @@ def IPT_to_XYZ(cobj, *args, **kwargs):
     return XYZColor(*xyz_values, observer="2", illuminant="d65")
 
 
-# We use this as a template conversion dict for each RGB color space. They
-# are all identical.
-_RGB_CONVERSION_DICT_TEMPLATE = {
-    "HSLColor": [RGB_to_HSL],
-    "HSVColor": [RGB_to_HSV],
-    "CMYColor": [RGB_to_CMY],
-    "CMYKColor": [RGB_to_CMY, CMY_to_CMYK],
-    "XYZColor": [RGB_to_XYZ],
-    "xyYColor": [RGB_to_XYZ, XYZ_to_xyY],
-    "LabColor": [RGB_to_XYZ, XYZ_to_Lab],
-    "LCHabColor": [RGB_to_XYZ, XYZ_to_Lab, Lab_to_LCHab],
-    "LCHuvColor": [RGB_to_XYZ, XYZ_to_Luv, Luv_to_LCHuv],
-    "LuvColor": [RGB_to_XYZ, XYZ_to_Luv],
-    "IPTColor": [RGB_to_XYZ, XYZ_to_IPT],
-}
-
-
 def convert_color(
     color,
     target_cs,
@@ -1034,7 +1010,7 @@ def convert_color(
                 new_color,
                 target_rgb=target_rgb,
                 target_illuminant=target_illuminant,
-                *args,
+                *args,  # noqa: B026
                 **kwargs
             )
 
@@ -1042,7 +1018,7 @@ def convert_color(
 
     # If this conversion had something other than the default sRGB color space
     # requested,
-    if through_rgb_type != sRGBColor:
-        new_color._through_rgb_type = through_rgb_type
+    if target_rgb != sRGBColor:
+        new_color._through_rgb_type = target_rgb
 
     return new_color
