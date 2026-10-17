@@ -49,9 +49,9 @@ class ColorBase(object):
             value = getattr(self, val, None)
             if value is not None:
                 retval += "%s:%.4f " % (val, getattr(self, val))
-        if hasattr(self, "observer"):
+        if getattr(self, "observer", None) is not None:
             retval += "observer:" + self.observer
-        if hasattr(self, "illuminant"):
+        if getattr(self, "illuminant", None) is not None:
             retval += " illuminant:" + self.illuminant
         return retval.strip() + ")"
 
@@ -63,9 +63,9 @@ class ColorBase(object):
         attributes = [(attr, getattr(self, attr)) for attr in self.VALUES]
         values = [x + "=" + repr(y) for x, y in attributes]
         retval += ", ".join(values)
-        if hasattr(self, "observer"):
+        if getattr(self, "observer", None) is not None:
             retval += ", observer='" + self.observer + "'"
-        if hasattr(self, "illuminant"):
+        if getattr(self, "illuminant", None) is not None:
             retval += ", illuminant='" + self.illuminant + "'"
         return retval + ")"
 
