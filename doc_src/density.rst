@@ -6,7 +6,7 @@ ANSI and ISO Density
 ====================
 
 Density may be calculated from
-:py:class:`LabColor <colormath2.color_objects.SpectralColor>` instances.
+:py:class:`SpectralColor <colormath2.color_objects.SpectralColor>` instances.
 
 .. autofunction:: colormath2.density.auto_density
 
