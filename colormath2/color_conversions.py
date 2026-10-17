@@ -734,7 +734,7 @@ def HSV_to_RGB(cobj, target_rgb, *args, **kwargs):
     V = cobj.hsv_v
 
     h_floored = int(math.floor(H))
-    h_sub_i = int(h_floored / 60) % 6
+    h_sub_i = (h_floored // 60) % 6
     var_f = (H / 60.0) - (h_floored // 60)
     var_p = V * (1.0 - S)
     var_q = V * (1.0 - var_f * S)

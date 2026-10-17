@@ -428,6 +428,11 @@ class HSVConversionTestCase(BaseColorConversionTest):
     def test_conversion_to_rgb(self):
         rgb = convert_color(self.color, sRGBColor)
         self.assertColorMatch(rgb, sRGBColor(0.480, 0.784, 0.196))
+        neg_hsv = HSVColor(-30.0, 0.5, 0.8)
+        pos_hsv = HSVColor(330.0, 0.5, 0.8)
+        self.assertColorMatch(
+            convert_color(neg_hsv, sRGBColor), convert_color(pos_hsv, sRGBColor)
+        )
 
     def test_convert_to_self(self):
         same_color = convert_color(self.color, HSVColor)
