@@ -307,7 +307,7 @@ class Hunt(object):
     @property
     def lightness(self):
         """
-        Predicted colorfulness :math:`J`.
+        Predicted lightness :math:`J`.
         """
         return self._lightness
 
@@ -780,7 +780,7 @@ class RLAB(object):
     @property
     def lightness(self):
         """
-        Predicted colorfulness :math:`L^R`.
+        Predicted lightness :math:`L^R`.
         """
         return self._lightness
 
@@ -1011,7 +1011,7 @@ class LLAB(object):
     @property
     def lightness(self):
         """
-        Predicted colorfulness :math:`L_L`.
+        Predicted lightness :math:`L_L`.
         """
         return self._lightness
 
@@ -1029,7 +1029,7 @@ class LLAB(object):
         """
         return self._b_l
 
-    def __init__(self, x, y, z, x_0, y_0, z_0, y_b, f_s, f_l, f_c, l, d=1):
+    def __init__(self, x, y, z, x_0, y_0, z_0, y_b, f_s, f_l, f_c, l, d=1):  # noqa: E741
         """
         :param x: X value of test sample :math:`X`.
         :param y: Y value of test sample :math:`Y`.
@@ -1150,21 +1150,21 @@ class CIECAM02(object):
     @property
     def saturation(self):
         """
-        Predicted saturation :math:`s_L`.
+        Predicted saturation :math:`s`.
         """
         return self._saturation
 
     @property
     def lightness(self):
         """
-        Predicted colorfulness :math:`J`.
+        Predicted lightness :math:`J`.
         """
         return self._lightness
 
     @property
     def brightness(self):
         """
-        Predicted colorfulness :math:`Q`.
+        Predicted brightness :math:`Q`.
         """
         return self._brightness
 
@@ -1394,7 +1394,7 @@ class CIECAM02m1(CIECAM02):
         :param z_b: Z value of background :math:`Z_b`.
         :param l_a: Adapting luminance :math:`L_A` in cd/m^2.
         :param c: Exponential nonlinearity :math:`c`. (Average/Dim/Dark)
-                  (0.69/0.59/5.25).
+                  (0.69/0.59/0.525).
         :param n_c: Chromatic induction factor :math:`N_c`. (Average/Dim/Dark)
                     (1.0,0.9,0.8).
         :param f: Maximum degree of adaptation :math:`F`. (Average/Dim/Dark)
