@@ -69,9 +69,7 @@ def apply_RGB_matrix(var1, var2, var3, rgb_type, convtype="xyz_to_rgb"):
     return rgb_r, rgb_g, rgb_b
 
 
-class ConversionManager(object):
-    __metaclass__ = ABCMeta
-
+class ConversionManager(metaclass=ABCMeta):
     def __init__(self):
         self.registered_color_spaces = set()
 
@@ -145,16 +143,6 @@ class GraphConversionManager(ConversionManager):
         )
         self.conversion_graph.add_edge(
             start_type, target_type, conversion_function=conversion_function
-        )
-
-
-class DummyConversionManager(ConversionManager):
-    def add_type_conversion(self, start_type, target_type, conversion_function):
-        pass
-
-    def get_conversion_path(self, start_type, target_type):
-        raise UndefinedConversionError(
-            start_type, target_type,
         )
 
 
@@ -933,23 +921,6 @@ def IPT_to_XYZ(cobj, *args, **kwargs):
     return XYZColor(*xyz_values, observer="2", illuminant="d65")
 
 
-# We use this as a template conversion dict for each RGB color space. They
-# are all identical.
-_RGB_CONVERSION_DICT_TEMPLATE = {
-    "HSLColor": [RGB_to_HSL],
-    "HSVColor": [RGB_to_HSV],
-    "CMYColor": [RGB_to_CMY],
-    "CMYKColor": [RGB_to_CMY, CMY_to_CMYK],
-    "XYZColor": [RGB_to_XYZ],
-    "xyYColor": [RGB_to_XYZ, XYZ_to_xyY],
-    "LabColor": [RGB_to_XYZ, XYZ_to_Lab],
-    "LCHabColor": [RGB_to_XYZ, XYZ_to_Lab, Lab_to_LCHab],
-    "LCHuvColor": [RGB_to_XYZ, XYZ_to_Luv, Luv_to_LCHuv],
-    "LuvColor": [RGB_to_XYZ, XYZ_to_Luv],
-    "IPTColor": [RGB_to_XYZ, XYZ_to_IPT],
-}
-
-
 def convert_color(
     color,
     target_cs,
@@ -1034,7 +1005,7 @@ def convert_color(
                 new_color,
                 target_rgb=target_rgb,
                 target_illuminant=target_illuminant,
-                *args,
+                *args,  # noqa: B026
                 **kwargs
             )
 
