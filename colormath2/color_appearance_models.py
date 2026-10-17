@@ -1198,14 +1198,19 @@ class CIECAM02(object):
         :param d: Discount-the-Illuminant factor :math:`D`.
         """
 
+        if any(
+            numpy.ndim(v) > 0
+            for v in (x, y, z, x_w, y_w, z_w, y_b, l_a, c, n_c, f, d)
+        ):
+            x, y, z, x_w, y_w, z_w = numpy.broadcast_arrays(
+                x, y, z, x_w, y_w, z_w, y_b, l_a, c, n_c, f, d
+            )[:6]
+
         xyz = numpy.array([x, y, z])
         xyz_w = numpy.array([x_w, y_w, z_w])
 
         # Determine the degree of adaptation
-        if not d:
-            d = self._compute_degree_of_adaptation(f, l_a)
-        else:
-            d = 1
+        d = numpy.where(d, 1, self._compute_degree_of_adaptation(f, l_a))
         logger.debug("D: {}".format(d))
 
         # Compute viewing condition dependant components
@@ -1232,7 +1237,7 @@ class CIECAM02(object):
         self._b = (1 / 9) * (r_a + g_a - 2 * b_a)
 
         # Hue
-        self._h = 360 * numpy.arctan2(self._b, self._a) / (2 * numpy.pi)
+        self._h = (360 * numpy.arctan2(self._b, self._a) / (2 * numpy.pi)) % 360
         e_t = (1 / 4) * (numpy.cos(2 + self._h * numpy.pi / 180) + 3.8)
 
         # Lightness
@@ -1307,11 +1312,11 @@ class CIECAM02(object):
 
     @staticmethod
     def _xyz_to_rgb(xyz):
-        return numpy.dot(CIECAM02.M_CAT02, xyz)
+        return numpy.einsum("ij,j...->i...", CIECAM02.M_CAT02, xyz)
 
     @staticmethod
     def _rgb_to_xyz(rgb):
-        return numpy.dot(CIECAM02.M_CAT02_inv, rgb)
+        return numpy.einsum("ij,j...->i...", CIECAM02.M_CAT02_inv, rgb)
 
     @staticmethod
     def _white_adaption(rgb, rgb_w, d=1):
@@ -1325,7 +1330,8 @@ class CIECAM02(object):
 
     @staticmethod
     def _compute_hunt_pointer_estevez_fundamentals(rgb):
-        return numpy.dot(numpy.dot(CIECAM02.M_HPE, CIECAM02.M_CAT02_inv), rgb)
+        m_hpe_cat02 = numpy.dot(CIECAM02.M_HPE, CIECAM02.M_CAT02_inv)
+        return numpy.einsum("ij,j...->i...", m_hpe_cat02, rgb)
 
     @staticmethod
     def _compute_nonlinearities(f_l, rgb):
@@ -1376,6 +1382,13 @@ class CIECAM02m1(CIECAM02):
         :param p: Simultaneous contrast/assimilation parameter.
         :param d: Discount-the-Illuminant factor :math:`D`.
         """
+        if any(
+            numpy.ndim(v) > 0
+            for v in (x, y, z, x_w, y_w, z_w, x_b, y_b, z_b, l_a, c, n_c, f, p, d)
+        ):
+            x, y, z, x_w, y_w, z_w, x_b, y_b, z_b = numpy.broadcast_arrays(
+                x, y, z, x_w, y_w, z_w, x_b, y_b, z_b, l_a, c, n_c, f, p, d
+            )[:9]
 
         self._p = p
         self._xyz_b = numpy.array([x_b, y_b, z_b])
