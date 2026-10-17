@@ -40,11 +40,12 @@ def delta_e_cie1994(
 
     delta_lab = lab_color_vector - lab_color_matrix
 
-    delta_L = delta_lab[:, 0].copy()
+    delta_L = delta_lab[:, 0]
     delta_C = C_1 - C_2
-    delta_lab[:, 0] = delta_C
 
-    delta_H_sq = numpy.sum(numpy.power(delta_lab, 2) * numpy.array([-1, 1, 1]), axis=1)
+    delta_H_sq = numpy.sum(numpy.power(delta_lab[:, 1:], 2), axis=1) - numpy.power(
+        delta_C, 2
+    )
     # noinspection PyArgumentList
     delta_H = numpy.sqrt(delta_H_sq.clip(min=0))
 
@@ -61,7 +62,7 @@ def delta_e_cie1994(
 # noinspection PyPep8Naming
 def delta_e_cmc(lab_color_vector, lab_color_matrix, pl=2, pc=1):
     """
-    Calculates the Delta E (CIE1994) of two colors.
+    Calculates the Delta E (CMC) of two colors.
 
     CMC values
       Acceptability: pl=2, pc=1
@@ -74,9 +75,8 @@ def delta_e_cmc(lab_color_vector, lab_color_matrix, pl=2, pc=1):
 
     delta_lab = lab_color_vector - lab_color_matrix
 
-    delta_L = delta_lab[:, 0].copy()
+    delta_L = delta_lab[:, 0]
     delta_C = C_1 - C_2
-    delta_lab[:, 0] = delta_C
 
     H_1 = numpy.degrees(numpy.arctan2(b, a))
 
@@ -99,9 +99,9 @@ def delta_e_cmc(lab_color_vector, lab_color_matrix, pl=2, pc=1):
     S_C = ((0.0638 * C_1) / (1 + 0.0131 * C_1)) + 0.638
     S_H = S_C * (F * T + 1 - F)
 
-    delta_C = C_1 - C_2
-
-    delta_H_sq = numpy.sum(numpy.power(delta_lab, 2) * numpy.array([-1, 1, 1]), axis=1)
+    delta_H_sq = numpy.sum(numpy.power(delta_lab[:, 1:], 2), axis=1) - numpy.power(
+        delta_C, 2
+    )
     # noinspection PyArgumentList
     delta_H = numpy.sqrt(delta_H_sq.clip(min=0))
 

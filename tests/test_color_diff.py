@@ -199,6 +199,25 @@ class DeltaETestCase(unittest.TestCase):
         sample = LabColor(lab_l=0.7, lab_a=0, lab_b=0)
         delta_e_cmc(standard, sample)
 
+    def test_matrix_integer_inputs(self):
+        import numpy
+        from colormath2 import color_diff_matrix
+
+        v_int = numpy.array([50, 10, 10], dtype=int)
+        m_int = numpy.array([[50, 12, 15]], dtype=int)
+        v_flt = v_int.astype(float)
+        m_flt = m_int.astype(float)
+        self.assertAlmostEqual(
+            color_diff_matrix.delta_e_cie1994(v_int, m_int)[0],
+            color_diff_matrix.delta_e_cie1994(v_flt, m_flt)[0],
+            places=6,
+        )
+        self.assertAlmostEqual(
+            color_diff_matrix.delta_e_cmc(v_int, m_int)[0],
+            color_diff_matrix.delta_e_cmc(v_flt, m_flt)[0],
+            places=6,
+        )
+
     # noinspection PyArgumentEqualDefault
     def test_cmc_accuracy(self):
         # Test 2:1
