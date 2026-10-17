@@ -791,11 +791,19 @@ class RLAB(object):
                       :math:`\\sigma=1/3.5`.
         :param d: Degree of adaptation :math:`D`.
         """
+        if any(
+            numpy.ndim(v) > 0
+            for v in (x, y, z, x_n, y_n, z_n, y_n_abs, sigma, d)
+        ):
+            x, y, z, x_n, y_n, z_n, y_n_abs, sigma, d = numpy.broadcast_arrays(
+                x, y, z, x_n, y_n, z_n, y_n_abs, sigma, d
+            )
+
         xyz = numpy.array([x, y, z])
         xyz_n = numpy.array([x_n, y_n, z_n])
 
-        lms = Hunt.xyz_to_rgb(xyz)
-        lms_n = Hunt.xyz_to_rgb(xyz_n)
+        lms = numpy.einsum("ij,j...->i...", Hunt.xyz_to_rgb_m, xyz)
+        lms_n = numpy.einsum("ij,j...->i...", Hunt.xyz_to_rgb_m, xyz_n)
         logger.debug("LMS: {}".format(lms))
         logger.debug("LMS_n: {}".format(lms_n))
 
@@ -810,25 +818,13 @@ class RLAB(object):
         logger.debug("LMS_a: {}".format(lms_a))
 
         # If we want to allow arrays as input we need special handling here.
-        if len(numpy.shape(x)) == 0:
+        if lms.ndim == 1 and lms_a.ndim == 1:
             # Okay so just a number, we can do things by the book.
             a = numpy.diag(lms_a)
             logger.debug("A: {}".format(a))
             xyz_ref = self.R.dot(a).dot(Hunt.xyz_to_rgb_m).dot(xyz)
         else:
-            # So we have an array. Since constructing huge multidimensional
-            # arrays might not bee the best idea, we will handle each input
-            # dimension separately. First figure out how many values we have to
-            # deal with.
-            input_dim = len(x)
-            # No create the output array that we will fill layer by layer
-            xyz_ref = numpy.zeros((3, input_dim))
-            for layer in range(input_dim):
-                a = numpy.diag(lms_a[..., layer])
-                logger.debug("A layer {}: {}".format(layer, a))
-                xyz_ref[..., layer] = (
-                    self.R.dot(a).dot(Hunt.xyz_to_rgb_m).dot(xyz[..., layer])
-                )
+            xyz_ref = numpy.einsum("ij,j...->i...", self.R, lms_a * lms)
 
         logger.debug("XYZ_ref: {}".format(xyz_ref))
         x_ref, y_ref, z_ref = xyz_ref

@@ -217,6 +217,53 @@ class TestRLABColorAppearanceModel(ColorAppearanceTest):
         )
         return model
 
+    def test_array_stimulus_scalar_whitepoint(self):
+        s0 = RLAB(19.01, 20.0, 21.78, 95.05, 100.0, 108.88, 318.31, 0.4347, 0.5)
+        s1 = RLAB(57.06, 43.06, 31.96, 95.05, 100.0, 108.88, 31.83, 0.4347, 0.5)
+        s2 = RLAB(3.53, 6.56, 2.14, 95.05, 100.0, 108.88, 318.31, 0.4347, 0.5)
+
+        model_2 = RLAB(
+            numpy.array([19.01, 57.06]),
+            numpy.array([20.0, 43.06]),
+            numpy.array([21.78, 31.96]),
+            95.05,
+            100.0,
+            108.88,
+            numpy.array([318.31, 31.83]),
+            0.4347,
+            0.5,
+        )
+        assert_allclose(model_2.lightness, [s0.lightness, s1.lightness])
+
+        model_3 = RLAB(
+            numpy.array([19.01, 57.06, 3.53]),
+            numpy.array([20.0, 43.06, 6.56]),
+            numpy.array([21.78, 31.96, 2.14]),
+            95.05,
+            100.0,
+            108.88,
+            numpy.array([318.31, 31.83, 318.31]),
+            0.4347,
+            0.5,
+        )
+        assert_allclose(
+            model_3.lightness, [s0.lightness, s1.lightness, s2.lightness]
+        )
+
+        model_2d = RLAB(
+            numpy.array([[19.01, 57.06], [3.53, 19.01]]),
+            numpy.array([[20.0, 43.06], [6.56, 20.0]]),
+            numpy.array([[21.78, 31.96], [2.14, 21.78]]),
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            0.4347,
+            0.5,
+        )
+        assert model_2d.lightness.shape == (2, 2)
+        assert_allclose(model_2d.lightness[0, 0], s0.lightness)
+
 
 class TestATDColorAppearanceModel(ColorAppearanceTest):
     fixture_path = "atd.csv"
