@@ -498,3 +498,10 @@ class IPTConversionTestCase(BaseColorConversionTest):
             return convert_color(xyz, IPTColor)
 
         self.assertRaises(ValueError, _ipt_conversion)
+
+    def test_ipt_coordinates_are_float(self):
+        xyz = XYZColor(0.5, 0.5, 0.5, illuminant="d65", observer="2")
+        ipt = convert_color(xyz, IPTColor)
+        self.assertIs(type(ipt.ipt_i), float)
+        self.assertIs(type(ipt.ipt_p), float)
+        self.assertIs(type(ipt.ipt_t), float)
