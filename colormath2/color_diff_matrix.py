@@ -40,11 +40,12 @@ def delta_e_cie1994(
 
     delta_lab = lab_color_vector - lab_color_matrix
 
-    delta_L = delta_lab[:, 0].copy()
+    delta_L = delta_lab[:, 0]
     delta_C = C_1 - C_2
-    delta_lab[:, 0] = delta_C
 
-    delta_H_sq = numpy.sum(numpy.power(delta_lab, 2) * numpy.array([-1, 1, 1]), axis=1)
+    delta_H_sq = numpy.sum(numpy.power(delta_lab[:, 1:], 2), axis=1) - numpy.power(
+        delta_C, 2
+    )
     # noinspection PyArgumentList
     delta_H = numpy.sqrt(delta_H_sq.clip(min=0))
 
@@ -61,7 +62,7 @@ def delta_e_cie1994(
 # noinspection PyPep8Naming
 def delta_e_cmc(lab_color_vector, lab_color_matrix, pl=2, pc=1):
     """
-    Calculates the Delta E (CIE1994) of two colors.
+    Calculates the Delta E (CMC) of two colors.
 
     CMC values
       Acceptability: pl=2, pc=1
@@ -74,9 +75,8 @@ def delta_e_cmc(lab_color_vector, lab_color_matrix, pl=2, pc=1):
 
     delta_lab = lab_color_vector - lab_color_matrix
 
-    delta_L = delta_lab[:, 0].copy()
+    delta_L = delta_lab[:, 0]
     delta_C = C_1 - C_2
-    delta_lab[:, 0] = delta_C
 
     H_1 = numpy.degrees(numpy.arctan2(b, a))
 
@@ -99,9 +99,9 @@ def delta_e_cmc(lab_color_vector, lab_color_matrix, pl=2, pc=1):
     S_C = ((0.0638 * C_1) / (1 + 0.0131 * C_1)) + 0.638
     S_H = S_C * (F * T + 1 - F)
 
-    delta_C = C_1 - C_2
-
-    delta_H_sq = numpy.sum(numpy.power(delta_lab, 2) * numpy.array([-1, 1, 1]), axis=1)
+    delta_H_sq = numpy.sum(numpy.power(delta_lab[:, 1:], 2), axis=1) - numpy.power(
+        delta_C, 2
+    )
     # noinspection PyArgumentList
     delta_H = numpy.sqrt(delta_H_sq.clip(min=0))
 
@@ -147,7 +147,11 @@ def delta_e_cie2000(lab_color_vector, lab_color_matrix, Kl=1, Kc=1, Kh=1):
     h2p = numpy.degrees(numpy.arctan2(lab_color_matrix[:, 2], a2p))
     h2p += (h2p < 0) * 360
 
-    avg_Hp = (((numpy.fabs(h1p - h2p) > 180) * 360) + h1p + h2p) / 2.0
+    avg_Hp = (
+        h1p
+        + h2p
+        + (numpy.fabs(h1p - h2p) > 180) * numpy.where(h1p + h2p < 360, 360, -360)
+    ) / 2.0
 
     T = (
         1
@@ -158,8 +162,11 @@ def delta_e_cie2000(lab_color_vector, lab_color_matrix, Kl=1, Kc=1, Kh=1):
     )
 
     diff_h2p_h1p = h2p - h1p
-    delta_hp = diff_h2p_h1p + (numpy.fabs(diff_h2p_h1p) > 180) * 360
-    delta_hp -= (h2p > h1p) * 720
+    delta_hp = (
+        diff_h2p_h1p
+        + (diff_h2p_h1p < -180) * 360
+        - (diff_h2p_h1p > 180) * 360
+    )
 
     delta_Lp = lab_color_matrix[:, 0] - L
     delta_Cp = C2p - C1p

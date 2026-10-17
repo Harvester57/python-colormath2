@@ -7,6 +7,7 @@ using various Delta E formulas.
 import numpy
 
 from colormath2 import color_diff_matrix
+from colormath2.color_objects import LabColor
 
 
 def _get_lab_color1_vector(color):
@@ -16,7 +17,7 @@ def _get_lab_color1_vector(color):
     :param LabColor color:
     :rtype: numpy.ndarray
     """
-    if not color.__class__.__name__ == "LabColor":
+    if not isinstance(color, LabColor):
         raise ValueError(
             "Delta E functions can only be used with two LabColor objects."
         )
@@ -30,7 +31,7 @@ def _get_lab_color2_matrix(color):
     :param LabColor color:
     :rtype: numpy.ndarray
     """
-    if not color.__class__.__name__ == "LabColor":
+    if not isinstance(color, LabColor):
         raise ValueError(
             "Delta E functions can only be used with two LabColor objects."
         )

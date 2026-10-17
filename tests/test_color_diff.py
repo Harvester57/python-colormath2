@@ -179,6 +179,24 @@ class DeltaETestCase(unittest.TestCase):
                 % (result, expected, result - expected),
             )
 
+    def test_cie2000_avg_hp_wraparound(self):
+        c1 = LabColor(lab_l=50.0, lab_a=25.0, lab_b=-0.5)
+        c2 = LabColor(lab_l=50.0, lab_a=50.0, lab_b=1.5)
+        self.assertAlmostEqual(
+            delta_e_cie2000(c1, c2), 9.408905543673072, places=9
+        )
+        self.assertAlmostEqual(
+            delta_e_cie2000(c2, c1), 9.408905543673072, places=9
+        )
+        opp1 = LabColor(lab_l=50.0, lab_a=20.0, lab_b=-1.0)
+        opp2 = LabColor(lab_l=50.0, lab_a=-40.0, lab_b=2.0)
+        self.assertAlmostEqual(
+            delta_e_cie2000(opp1, opp2), 50.07876540363944, places=9
+        )
+        self.assertAlmostEqual(
+            delta_e_cie2000(opp2, opp1), 50.07876540363944, places=9
+        )
+
     def test_cie1994_negative_square_root(self):
         """
         Tests against a case where a negative square root in the delta_H
@@ -198,6 +216,25 @@ class DeltaETestCase(unittest.TestCase):
         standard = LabColor(lab_l=0.9, lab_a=1, lab_b=1)
         sample = LabColor(lab_l=0.7, lab_a=0, lab_b=0)
         delta_e_cmc(standard, sample)
+
+    def test_matrix_integer_inputs(self):
+        import numpy
+        from colormath2 import color_diff_matrix
+
+        v_int = numpy.array([50, 10, 10], dtype=int)
+        m_int = numpy.array([[50, 12, 15]], dtype=int)
+        v_flt = v_int.astype(float)
+        m_flt = m_int.astype(float)
+        self.assertAlmostEqual(
+            color_diff_matrix.delta_e_cie1994(v_int, m_int)[0],
+            color_diff_matrix.delta_e_cie1994(v_flt, m_flt)[0],
+            places=6,
+        )
+        self.assertAlmostEqual(
+            color_diff_matrix.delta_e_cmc(v_int, m_int)[0],
+            color_diff_matrix.delta_e_cmc(v_flt, m_flt)[0],
+            places=6,
+        )
 
     # noinspection PyArgumentEqualDefault
     def test_cmc_accuracy(self):
@@ -288,3 +325,13 @@ class DeltaETestCase(unittest.TestCase):
     def test_non_lab_color(self):
         other_color = sRGBColor(1.0, 0.5, 0.3)
         self.assertRaises(ValueError, delta_e_cie2000, self.color1, other_color)
+
+    def test_lab_color_subclass(self):
+        class CustomLabColor(LabColor):
+            pass
+
+        sub1 = CustomLabColor(lab_l=0.9, lab_a=16.3, lab_b=-2.22)
+        sub2 = CustomLabColor(lab_l=0.7, lab_a=14.2, lab_b=-1.80)
+        self.assertAlmostEqual(
+            delta_e_cie2000(sub1, sub2), delta_e_cie2000(self.color1, self.color2)
+        )
