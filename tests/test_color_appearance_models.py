@@ -46,7 +46,7 @@ from colormath2.color_appearance_models import (
 )
 
 
-class ColorAppearanceTest(object):
+class ColorAppearanceTest(unittest.TestCase):
     fixture_path = None
     output_parameter_dict = {}
 
@@ -66,9 +66,9 @@ class ColorAppearanceTest(object):
 
     def check_model_consistency(self, data, output_parameter_dict):
         for data_attr, model_attr in sorted(output_parameter_dict.items()):
-            yield self.check_model_attribute, data.get("Case"), data, model_attr, data[
-                data_attr
-            ]
+            self.check_model_attribute(
+                data.get("Case"), data, model_attr, data[data_attr]
+            )
 
     @abstractmethod
     def create_model_from_data(self, data):
@@ -102,13 +102,16 @@ class ColorAppearanceTest(object):
         return fixtures
 
     def test_forward_examples(self):
+        if self.fixture_path is None:
+            return
         # Go through all available fixtures
         for data in self._get_fixtures():
             # Create a single test for each output parameter
-            for test in self.check_model_consistency(data, self.output_parameter_dict):
-                yield test
+            self.check_model_consistency(data, self.output_parameter_dict)
 
     def test_parallel_forward_example(self):
+        if self.fixture_path is None:
+            return
         # Collect all fixture data in a single dict of lists
         data = defaultdict(list)
         for fixture in self._get_fixtures():
@@ -118,8 +121,7 @@ class ColorAppearanceTest(object):
         for key in data:
             data[key] = numpy.array(data[key])
         # Create tests
-        for test in self.check_model_consistency(data, self.output_parameter_dict):
-            yield test
+        self.check_model_consistency(data, self.output_parameter_dict)
 
 
 class TestNayataniColorAppearanceModel(ColorAppearanceTest):
@@ -179,9 +181,9 @@ class TestHuntColorAppearanceModel(ColorAppearanceTest):
             data["X"],
             data["Y"],
             data["Z"],
-            data["X_W"],
+            0.2 * data["X_W"],
             0.2 * data["Y_W"],
-            data["Z_W"],
+            0.2 * data["Z_W"],
             data["X_W"],
             data["Y_W"],
             data["Z_W"],
@@ -190,6 +192,123 @@ class TestHuntColorAppearanceModel(ColorAppearanceTest):
             n_b=data["N_b"],
             cct_w=data["T"],
         )
+
+    def test_hunt_cct_and_options(self):
+        cct_d65 = Hunt._get_cct(95.05, 100.0, 108.88)
+        assert_allclose(cct_d65, 6504.0, rtol=0.01)
+
+        # Verify z_p fallback defaults to z_b (when p != 0 and x_p/y_p/z_p are None,
+        # proximal field equals background so adjust_white_for_scc is identity)
+        m_no_p = Hunt(
+            19.01,
+            20.0,
+            21.78,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+        )
+        m_default_zp = Hunt(
+            19.01,
+            20.0,
+            21.78,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            p=-0.5,
+        )
+        assert_allclose(m_default_zp.chroma, m_no_p.chroma, rtol=1e-12)
+
+        # Verify simultaneous chromatic contrast with distinct proximal field
+        # and verify scalar vs 1D (N=2, N=3) and 2D array consistency
+        s0 = Hunt(
+            19.01,
+            20.0,
+            21.78,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            x_p=40.0,
+            y_p=20.0,
+            z_p=10.0,
+            p=-0.5,
+            helson_judd=True,
+            discount_illuminant=False,
+        )
+        s1 = Hunt(
+            57.06,
+            43.06,
+            31.96,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            x_p=40.0,
+            y_p=20.0,
+            z_p=10.0,
+            p=-0.5,
+            helson_judd=True,
+            discount_illuminant=False,
+        )
+        assert s0.chroma > m_no_p.chroma
+
+        x = numpy.array([19.01, 57.06, 19.01])
+        y = numpy.array([20.0, 43.06, 20.0])
+        z = numpy.array([21.78, 31.96, 21.78])
+        m_arr = Hunt(
+            x,
+            y,
+            z,
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            1.0,
+            75.0,
+            x_p=40.0,
+            y_p=20.0,
+            z_p=10.0,
+            p=-0.5,
+            helson_judd=True,
+            discount_illuminant=False,
+        )
+        assert_allclose(m_arr.lightness, [s0.lightness, s1.lightness, s0.lightness])
+        assert_allclose(m_arr.chroma, [s0.chroma, s1.chroma, s0.chroma])
+
+        # Verify 2D array stimulus support
+        x2d = numpy.array([[19.01, 57.06], [57.06, 19.01]])
+        y2d = numpy.array([[20.0, 43.06], [43.06, 20.0]])
+        z2d = numpy.array([[21.78, 31.96], [31.96, 21.78]])
+        m_2d = Hunt(
+            x2d, y2d, z2d, 19.01, 20.0, 21.78, 95.05, 100.0, 108.88, 318.31, 1.0, 75.0
+        )
+        assert m_2d.lightness.shape == (2, 2)
+        assert_allclose(m_2d.lightness[0, 0], m_no_p.lightness)
 
 
 class TestRLABColorAppearanceModel(ColorAppearanceTest):
@@ -216,6 +335,53 @@ class TestRLABColorAppearanceModel(ColorAppearanceTest):
             data["D"],
         )
         return model
+
+    def test_array_stimulus_scalar_whitepoint(self):
+        s0 = RLAB(19.01, 20.0, 21.78, 95.05, 100.0, 108.88, 318.31, 0.4347, 0.5)
+        s1 = RLAB(57.06, 43.06, 31.96, 95.05, 100.0, 108.88, 31.83, 0.4347, 0.5)
+        s2 = RLAB(3.53, 6.56, 2.14, 95.05, 100.0, 108.88, 318.31, 0.4347, 0.5)
+
+        model_2 = RLAB(
+            numpy.array([19.01, 57.06]),
+            numpy.array([20.0, 43.06]),
+            numpy.array([21.78, 31.96]),
+            95.05,
+            100.0,
+            108.88,
+            numpy.array([318.31, 31.83]),
+            0.4347,
+            0.5,
+        )
+        assert_allclose(model_2.lightness, [s0.lightness, s1.lightness])
+
+        model_3 = RLAB(
+            numpy.array([19.01, 57.06, 3.53]),
+            numpy.array([20.0, 43.06, 6.56]),
+            numpy.array([21.78, 31.96, 2.14]),
+            95.05,
+            100.0,
+            108.88,
+            numpy.array([318.31, 31.83, 318.31]),
+            0.4347,
+            0.5,
+        )
+        assert_allclose(
+            model_3.lightness, [s0.lightness, s1.lightness, s2.lightness]
+        )
+
+        model_2d = RLAB(
+            numpy.array([[19.01, 57.06], [3.53, 19.01]]),
+            numpy.array([[20.0, 43.06], [6.56, 20.0]]),
+            numpy.array([[21.78, 31.96], [2.14, 21.78]]),
+            95.05,
+            100.0,
+            108.88,
+            318.31,
+            0.4347,
+            0.5,
+        )
+        assert model_2d.lightness.shape == (2, 2)
+        assert_allclose(model_2d.lightness[0, 0], s0.lightness)
 
 
 class TestATDColorAppearanceModel(ColorAppearanceTest):
@@ -294,6 +460,7 @@ class TestLLABColorAppearanceModel(ColorAppearanceTest):
 class TestCIECAM02ColorAppearanceModel(ColorAppearanceTest):
     fixture_path = "ciecam02.csv"
     output_parameter_dict = {
+        "h": "hue_angle",
         "J": "lightness",
         "Q": "brightness",
         "C": "chroma",
@@ -346,7 +513,158 @@ class TestCIECAM02ColorAppearanceModel(ColorAppearanceTest):
         )
 
 
-@unittest.skip
-class TestCIECAM02m1ColorAppearanceModel(ColorAppearanceTest):
-    # TODO: Test CIECAM02-m1 model
-    pass
+class TestCIECAM02m1ColorAppearanceModel(TestCIECAM02ColorAppearanceModel):
+    def create_model_from_data(self, data):
+        from colormath2.color_appearance_models import CIECAM02m1
+
+        return CIECAM02m1(
+            data["X"],
+            data["Y"],
+            data["Z"],
+            data["X_W"],
+            data["Y_W"],
+            data["Z_W"],
+            0.2 * data["X_W"],
+            data["Y_b"],
+            0.2 * data["Z_W"],
+            data["L_A"],
+            data["c"],
+            data["N_c"],
+            data["F"],
+            p=0.0,
+        )
+
+    def test_simultaneous_contrast(self):
+        from colormath2.color_appearance_models import CIECAM02m1
+
+        m0 = CIECAM02m1(
+            19.01,
+            20,
+            21.78,
+            95.05,
+            100,
+            108.88,
+            40.0,
+            20,
+            10.0,
+            318.31,
+            0.69,
+            1,
+            1,
+            0.0,
+        )
+        m1 = CIECAM02m1(
+            19.01,
+            20,
+            21.78,
+            95.05,
+            100,
+            108.88,
+            40.0,
+            20,
+            10.0,
+            318.31,
+            0.69,
+            1,
+            1,
+            -0.5,
+        )
+        assert m1.chroma > m0.chroma
+
+        # Verify N=3 array stimulus with scalar whitepoint/background and array d/p
+        x = numpy.array([19.01, 57.06, 3.53])
+        y = numpy.array([20.0, 43.06, 6.56])
+        z = numpy.array([21.78, 31.96, 2.14])
+        c_arr = CIECAM02(
+            x,
+            y,
+            z,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=numpy.array([False, True, False]),
+        )
+        c_s0 = CIECAM02(
+            19.01,
+            20.0,
+            21.78,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=False,
+        )
+        c_s1 = CIECAM02(
+            57.06,
+            43.06,
+            31.96,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=True,
+        )
+        c_s2 = CIECAM02(
+            3.53,
+            6.56,
+            2.14,
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            d=False,
+        )
+        assert_allclose(
+            c_arr.lightness, [c_s0.lightness, c_s1.lightness, c_s2.lightness]
+        )
+
+        m_arr = CIECAM02m1(
+            numpy.array([19.01, 19.01, 19.01]),
+            numpy.array([20.0, 20.0, 20.0]),
+            numpy.array([21.78, 21.78, 21.78]),
+            95.05,
+            100.0,
+            108.88,
+            40.0,
+            20.0,
+            10.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+            numpy.array([0.0, -0.5, 0.0]),
+        )
+        assert_allclose(m_arr.chroma, [m0.chroma, m1.chroma, m0.chroma])
+
+        c_2d = CIECAM02(
+            numpy.array([[19.01, 57.06], [3.53, 19.01]]),
+            numpy.array([[20.0, 43.06], [6.56, 20.0]]),
+            numpy.array([[21.78, 31.96], [2.14, 21.78]]),
+            95.05,
+            100.0,
+            108.88,
+            20.0,
+            318.31,
+            0.69,
+            1.0,
+            1.0,
+        )
+        assert c_2d.lightness.shape == (2, 2)
+        assert_allclose(c_2d.lightness[0, 0], c_s0.lightness)
