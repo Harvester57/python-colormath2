@@ -52,6 +52,13 @@ class BaseColorConversionTest(unittest.TestCase):
                 "%s is %s, expected %s" % (attrib, conv_value, std_value),
             )
 
+    def test_str_and_repr_with_none_observer_or_illuminant(self):
+        c = XYZColor(0.1, 0.2, 0.3)
+        c.observer = None
+        c.illuminant = None
+        self.assertIn("XYZColor", str(c))
+        self.assertIn("XYZColor", repr(c))
+
 
 class SpectralConversionTestCase(BaseColorConversionTest):
     def setUp(self):
