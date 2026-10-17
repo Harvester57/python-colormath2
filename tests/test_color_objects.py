@@ -379,6 +379,10 @@ class RGBConversionTestCase(BaseColorConversionTest):
         # Notice how we don't have to pass through_rgb_type explicitly.
         xyz2 = convert_color(hsl, XYZColor)
         self.assertColorMatch(xyz, xyz2)
+        cmy = convert_color(xyz, CMYColor, through_rgb_type=AdobeRGBColor)
+        cmyk = convert_color(cmy, CMYKColor)
+        xyz3 = convert_color(cmyk, XYZColor)
+        self.assertColorMatch(xyz, xyz3)
 
     def test_adobe_conversion_to_xyz_d50(self):
         """
