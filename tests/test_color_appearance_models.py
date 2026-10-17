@@ -46,7 +46,7 @@ from colormath2.color_appearance_models import (
 )
 
 
-class ColorAppearanceTest(object):
+class ColorAppearanceTest(unittest.TestCase):
     fixture_path = None
     output_parameter_dict = {}
 
@@ -66,9 +66,9 @@ class ColorAppearanceTest(object):
 
     def check_model_consistency(self, data, output_parameter_dict):
         for data_attr, model_attr in sorted(output_parameter_dict.items()):
-            yield self.check_model_attribute, data.get("Case"), data, model_attr, data[
-                data_attr
-            ]
+            self.check_model_attribute(
+                data.get("Case"), data, model_attr, data[data_attr]
+            )
 
     @abstractmethod
     def create_model_from_data(self, data):
@@ -102,13 +102,16 @@ class ColorAppearanceTest(object):
         return fixtures
 
     def test_forward_examples(self):
+        if self.fixture_path is None:
+            return
         # Go through all available fixtures
         for data in self._get_fixtures():
             # Create a single test for each output parameter
-            for test in self.check_model_consistency(data, self.output_parameter_dict):
-                yield test
+            self.check_model_consistency(data, self.output_parameter_dict)
 
     def test_parallel_forward_example(self):
+        if self.fixture_path is None:
+            return
         # Collect all fixture data in a single dict of lists
         data = defaultdict(list)
         for fixture in self._get_fixtures():
@@ -118,8 +121,7 @@ class ColorAppearanceTest(object):
         for key in data:
             data[key] = numpy.array(data[key])
         # Create tests
-        for test in self.check_model_consistency(data, self.output_parameter_dict):
-            yield test
+        self.check_model_consistency(data, self.output_parameter_dict)
 
 
 class TestNayataniColorAppearanceModel(ColorAppearanceTest):
