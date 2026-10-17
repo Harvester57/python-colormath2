@@ -250,7 +250,7 @@ def Lab_to_LCHab(cobj, *args, **kwargs):
     lch_c = math.sqrt(math.pow(float(cobj.lab_a), 2) + math.pow(float(cobj.lab_b), 2))
     lch_h = math.atan2(float(cobj.lab_b), float(cobj.lab_a))
 
-    if lch_h > 0:
+    if lch_h >= 0:
         lch_h = (lch_h / math.pi) * 180
     else:
         lch_h = 360 - (math.fabs(lch_h) / math.pi) * 180
@@ -305,7 +305,7 @@ def Luv_to_LCHuv(cobj, *args, **kwargs):
     lch_c = math.sqrt(math.pow(cobj.luv_u, 2.0) + math.pow(cobj.luv_v, 2.0))
     lch_h = math.atan2(float(cobj.luv_v), float(cobj.luv_u))
 
-    if lch_h > 0:
+    if lch_h >= 0:
         lch_h = (lch_h / math.pi) * 180
     else:
         lch_h = 360 - (math.fabs(lch_h) / math.pi) * 180
