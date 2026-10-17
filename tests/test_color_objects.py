@@ -188,6 +188,8 @@ class LabConversionTestCase(BaseColorConversionTest):
     def test_conversion_to_lchab(self):
         lch = convert_color(self.color, LCHabColor)
         self.assertColorMatch(lch, LCHabColor(1.807, 4.532, 214.191))
+        zero_h = convert_color(LabColor(50.0, 0.0, 0.0), LCHabColor)
+        self.assertEqual(zero_h.lch_h, 0.0)
 
     def test_convert_to_self(self):
         same_color = convert_color(self.color, LabColor)
@@ -205,6 +207,8 @@ class LuvConversionTestCase(BaseColorConversionTest):
     def test_conversion_to_lchuv(self):
         lch = convert_color(self.color, LCHuvColor)
         self.assertColorMatch(lch, LCHuvColor(1.807, 2.715, 199.222))
+        zero_h = convert_color(LuvColor(50.0, 0.0, 0.0), LCHuvColor)
+        self.assertEqual(zero_h.lch_h, 0.0)
 
     def test_convert_to_self(self):
         same_color = convert_color(self.color, LuvColor)
