@@ -81,8 +81,8 @@ def example_rgb_to_xyz():
     """
 
     print("=== RGB Example: RGB->XYZ ===")
-    # Instantiate an Lab color object with the given values.
-    rgb = sRGBColor(120, 130, 140)
+    # Instantiate an sRGB color object with the given values.
+    rgb = sRGBColor(120, 130, 140, is_upscaled=True)
     # Show a string representation.
     print(rgb)
     # Convert RGB to XYZ using a D50 illuminant.
