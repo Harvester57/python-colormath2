@@ -5,6 +5,7 @@ import numpy
 from numpy.linalg import pinv
 
 from colormath2 import color_constants
+from colormath2.color_exceptions import InvalidIlluminantError, InvalidObserverError
 
 logger = logging.getLogger(__name__)
 
@@ -24,19 +25,33 @@ def _get_adaptation_matrix(wp_src, wp_dst, observer, adaptation):
     # Get the appropriate transformation matrix, [MsubA].
     m_sharp = color_constants.ADAPTATION_MATRICES[adaptation]
 
+    observer = str(observer)
+    if observer not in color_constants.ILLUMINANTS:
+        raise InvalidObserverError(observer)
+
     # In case the white-points are still input as strings
     # Get white-points for illuminant
     if isinstance(wp_src, str):
         orig_illum = wp_src.lower()
-        wp_src = color_constants.ILLUMINANTS[observer][orig_illum]
+        try:
+            wp_src = color_constants.ILLUMINANTS[observer][orig_illum]
+        except KeyError:
+            raise InvalidIlluminantError(orig_illum)
     elif hasattr(wp_src, "__iter__"):
         wp_src = wp_src
+    else:
+        raise InvalidIlluminantError(wp_src)
 
     if isinstance(wp_dst, str):
         targ_illum = wp_dst.lower()
-        wp_dst = color_constants.ILLUMINANTS[observer][targ_illum]
+        try:
+            wp_dst = color_constants.ILLUMINANTS[observer][targ_illum]
+        except KeyError:
+            raise InvalidIlluminantError(targ_illum)
     elif hasattr(wp_dst, "__iter__"):
         wp_dst = wp_dst
+    else:
+        raise InvalidIlluminantError(wp_dst)
 
     # Sharpened cone responses ~ rho gamma beta ~ sharpened r g b
     rgb_src = numpy.dot(m_sharp, wp_src)
@@ -70,19 +85,32 @@ def apply_chromatic_adaptation(
     # It's silly to have to do this, but some people may want to call this
     # function directly, so we'll protect them from messing up upper/lower case.
     adaptation = adaptation.lower()
+    observer = str(observer)
+    if observer not in color_constants.ILLUMINANTS:
+        raise InvalidObserverError(observer)
 
     # Get white-points for illuminant
     if isinstance(orig_illum, str):
         orig_illum = orig_illum.lower()
-        wp_src = color_constants.ILLUMINANTS[observer][orig_illum]
+        try:
+            wp_src = color_constants.ILLUMINANTS[observer][orig_illum]
+        except KeyError:
+            raise InvalidIlluminantError(orig_illum)
     elif hasattr(orig_illum, "__iter__"):
         wp_src = orig_illum
+    else:
+        raise InvalidIlluminantError(orig_illum)
 
     if isinstance(targ_illum, str):
         targ_illum = targ_illum.lower()
-        wp_dst = color_constants.ILLUMINANTS[observer][targ_illum]
+        try:
+            wp_dst = color_constants.ILLUMINANTS[observer][targ_illum]
+        except KeyError:
+            raise InvalidIlluminantError(targ_illum)
     elif hasattr(targ_illum, "__iter__"):
         wp_dst = targ_illum
+    else:
+        raise InvalidIlluminantError(targ_illum)
 
     logger.debug("  \\* Applying adaptation matrix: %s", adaptation)
     # Retrieve the appropriate transformation matrix from the constants.
@@ -94,7 +122,7 @@ def apply_chromatic_adaptation(
     result_matrix = numpy.dot(transform_matrix, XYZ_matrix)
 
     # Return individual X, Y, and Z coordinates.
-    return result_matrix[0], result_matrix[1], result_matrix[2]
+    return float(result_matrix[0]), float(result_matrix[1]), float(result_matrix[2])
 
 
 # noinspection PyPep8Naming

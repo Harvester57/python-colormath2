@@ -17,9 +17,9 @@ class UndefinedConversionError(ColorMath2Exception):
     Raised when the user asks for a color space conversion that does not exist.
     """
 
-    def __init__(self, cobj, cs_to):
-        super(UndefinedConversionError, self).__init__(cobj, cs_to)
+    def __init__(self, cobj, cs_to):  # noqa: B042
         self.message = "Conversion from %s to %s is not defined." % (cobj, cs_to)
+        super(UndefinedConversionError, self).__init__(self.message)
 
 
 class InvalidIlluminantError(ColorMath2Exception):
@@ -28,8 +28,8 @@ class InvalidIlluminantError(ColorMath2Exception):
     """
 
     def __init__(self, illuminant):
-        super(InvalidIlluminantError, self).__init__(illuminant)
         self.message = "Invalid illuminant specified: %s" % illuminant
+        super(InvalidIlluminantError, self).__init__(self.message)
 
 
 class InvalidObserverError(ColorMath2Exception):
@@ -38,5 +38,6 @@ class InvalidObserverError(ColorMath2Exception):
     """
 
     def __init__(self, cobj):
-        super(InvalidObserverError, self).__init__(cobj)
-        self.message = "Invalid observer angle specified: %s" % cobj.observer
+        observer = cobj.observer if hasattr(cobj, "observer") else cobj
+        self.message = "Invalid observer angle specified: %s" % observer
+        super(InvalidObserverError, self).__init__(self.message)

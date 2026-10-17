@@ -49,9 +49,9 @@ class ColorBase(object):
             value = getattr(self, val, None)
             if value is not None:
                 retval += "%s:%.4f " % (val, getattr(self, val))
-        if hasattr(self, "observer"):
+        if getattr(self, "observer", None) is not None:
             retval += "observer:" + self.observer
-        if hasattr(self, "illuminant"):
+        if getattr(self, "illuminant", None) is not None:
             retval += " illuminant:" + self.illuminant
         return retval.strip() + ")"
 
@@ -63,9 +63,9 @@ class ColorBase(object):
         attributes = [(attr, getattr(self, attr)) for attr in self.VALUES]
         values = [x + "=" + repr(y) for x, y in attributes]
         retval += ", ".join(values)
-        if hasattr(self, "observer"):
+        if getattr(self, "observer", None) is not None:
             retval += ", observer='" + self.observer + "'"
-        if hasattr(self, "illuminant"):
+        if getattr(self, "illuminant", None) is not None:
             retval += ", illuminant='" + self.illuminant + "'"
         return retval + ")"
 
@@ -87,7 +87,7 @@ class IlluminantMixin(object):
         """
         observer = str(observer)
         if observer not in color_constants.OBSERVERS:
-            raise InvalidObserverError(self)
+            raise InvalidObserverError(observer)
         self.observer = observer
 
     # noinspection PyAttributeOutsideInit
@@ -104,6 +104,10 @@ class IlluminantMixin(object):
 
         :param str illuminant: One of the various illuminants.
         """
+        if self.observer not in color_constants.ILLUMINANTS:
+            raise InvalidObserverError(self.observer)
+        if not isinstance(illuminant, str):
+            raise InvalidIlluminantError(illuminant)
         illuminant = illuminant.lower()
         if illuminant not in color_constants.ILLUMINANTS[self.observer]:
             raise InvalidIlluminantError(illuminant)
@@ -122,7 +126,7 @@ class IlluminantMixin(object):
 
             illums_observer = color_constants.ILLUMINANTS[observer]
         except KeyError:
-            raise InvalidObserverError(self)
+            raise InvalidObserverError(observer)
 
         try:
             if illuminant is None:
@@ -610,9 +614,9 @@ class BaseRGBColor(ColorBase):
         """
         super(BaseRGBColor, self).__init__()
         if is_upscaled:
-            self.rgb_r = rgb_r / 255.0
-            self.rgb_g = rgb_g / 255.0
-            self.rgb_b = rgb_b / 255.0
+            self.rgb_r = float(rgb_r) / 255.0
+            self.rgb_g = float(rgb_g) / 255.0
+            self.rgb_b = float(rgb_b) / 255.0
         else:
             self.rgb_r = float(rgb_r)
             self.rgb_g = float(rgb_g)
@@ -621,17 +625,13 @@ class BaseRGBColor(ColorBase):
 
     def _clamp_rgb_coordinate(self, coord):
         """
-        Clamps an RGB coordinate, taking into account whether or not the
-        color is upscaled or not.
+        Clamps an RGB coordinate to [0.0, 1.0].
 
         :param float coord: The coordinate value.
         :rtype: float
         :returns: The clamped value.
         """
-        if not self.is_upscaled:
-            return min(max(coord, 0.0), 1.0)
-        else:
-            return min(max(coord, 0.0), 255.0)
+        return min(max(coord, 0.0), 1.0)
 
     @property
     def clamped_rgb_r(self):
@@ -659,9 +659,9 @@ class BaseRGBColor(ColorBase):
         Scales an RGB color object from decimal 0.0-1.0 to int 0-255.
         """
         # Scale up to 0-255 values.
-        rgb_r = int(math.floor(0.5 + self.rgb_r * 255))
-        rgb_g = int(math.floor(0.5 + self.rgb_g * 255))
-        rgb_b = int(math.floor(0.5 + self.rgb_b * 255))
+        rgb_r = int(math.floor(0.5 + self.clamped_rgb_r * 255))
+        rgb_g = int(math.floor(0.5 + self.clamped_rgb_g * 255))
+        rgb_b = int(math.floor(0.5 + self.clamped_rgb_b * 255))
 
         return rgb_r, rgb_g, rgb_b
 
@@ -968,11 +968,11 @@ class IPTColor(ColorBase):
         """
         super(IPTColor, self).__init__()
         #: I coordinate
-        self.ipt_i = ipt_i
+        self.ipt_i = float(ipt_i)
         #: P coordinate
-        self.ipt_p = ipt_p
+        self.ipt_p = float(ipt_p)
         #: T coordinate
-        self.ipt_t = ipt_t
+        self.ipt_t = float(ipt_t)
 
     @property
     def hue_angle(self):

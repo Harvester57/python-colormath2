@@ -52,6 +52,13 @@ class BaseColorConversionTest(unittest.TestCase):
                 "%s is %s, expected %s" % (attrib, conv_value, std_value),
             )
 
+    def test_str_and_repr_with_none_observer_or_illuminant(self):
+        c = XYZColor(0.1, 0.2, 0.3)
+        c.observer = None
+        c.illuminant = None
+        self.assertIn("XYZColor", str(c))
+        self.assertIn("XYZColor", repr(c))
+
 
 class SpectralConversionTestCase(BaseColorConversionTest):
     def setUp(self):
@@ -305,6 +312,12 @@ class RGBConversionTestCase(BaseColorConversionTest):
         self.assertEqual(low_b.clamped_rgb_g, low_b.rgb_g)
         self.assertEqual(low_b.clamped_rgb_b, 0.0)
 
+        upscaled_oob = sRGBColor(300, -10, 128, is_upscaled=True)
+        self.assertEqual(upscaled_oob.clamped_rgb_r, 1.0)
+        self.assertEqual(upscaled_oob.clamped_rgb_g, 0.0)
+        self.assertEqual(upscaled_oob.get_upscaled_value_tuple(), (255, 0, 128))
+        self.assertEqual(upscaled_oob.get_rgb_hex(), "#ff0080")
+
     def test_to_xyz_and_back(self):
         xyz = convert_color(self.color, XYZColor)
         rgb = convert_color(xyz, sRGBColor)
@@ -498,3 +511,10 @@ class IPTConversionTestCase(BaseColorConversionTest):
             return convert_color(xyz, IPTColor)
 
         self.assertRaises(ValueError, _ipt_conversion)
+
+    def test_ipt_coordinates_are_float(self):
+        xyz = XYZColor(0.5, 0.5, 0.5, illuminant="d65", observer="2")
+        ipt = convert_color(xyz, IPTColor)
+        self.assertIs(type(ipt.ipt_i), float)
+        self.assertIs(type(ipt.ipt_p), float)
+        self.assertIs(type(ipt.ipt_t), float)

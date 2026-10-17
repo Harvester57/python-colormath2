@@ -27,7 +27,7 @@ def ansi_density(color, density_standard):
     :returns: The density value for the given color and density standard.
     """
     # Load the spec_XXXnm attributes into a Numpy array.
-    sample = color.get_numpy_array()
+    sample = color.get_numpy_array().clip(min=0.0)
     # Matrix multiplication
     intermediate = sample * density_standard
 
@@ -36,6 +36,11 @@ def ansi_density(color, density_standard):
     # This is the denominator in the density equation.
     sum_of_standard_wavelengths = density_standard.sum()
 
+    if numerator <= 0.0 or sum_of_standard_wavelengths <= 0.0:
+        raise ValueError(
+            "Cannot calculate density for non-positive spectral reflectance."
+        )
+
     # This is the top level of the density formula.
     return -1.0 * log10(numerator / sum_of_standard_wavelengths)
 
@@ -43,8 +48,7 @@ def ansi_density(color, density_standard):
 def auto_density(color):
     """
     Given a SpectralColor, automatically choose the correct ANSI T filter.
-    Returns a tuple with a string representation of the filter the
-    calculated density.
+    Returns the calculated density value.
 
     :param SpectralColor color: The SpectralColor object to calculate
         density for.
