@@ -1047,7 +1047,7 @@ def convert_color(
 
     # If this conversion had something other than the default sRGB color space
     # requested,
-    if through_rgb_type != sRGBColor:
-        new_color._through_rgb_type = through_rgb_type
+    if target_rgb != sRGBColor:
+        new_color._through_rgb_type = target_rgb
 
     return new_color
