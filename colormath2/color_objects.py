@@ -87,7 +87,7 @@ class IlluminantMixin(object):
         """
         observer = str(observer)
         if observer not in color_constants.OBSERVERS:
-            raise InvalidObserverError(self)
+            raise InvalidObserverError(observer)
         self.observer = observer
 
     # noinspection PyAttributeOutsideInit
@@ -104,6 +104,10 @@ class IlluminantMixin(object):
 
         :param str illuminant: One of the various illuminants.
         """
+        if self.observer not in color_constants.ILLUMINANTS:
+            raise InvalidObserverError(self.observer)
+        if not isinstance(illuminant, str):
+            raise InvalidIlluminantError(illuminant)
         illuminant = illuminant.lower()
         if illuminant not in color_constants.ILLUMINANTS[self.observer]:
             raise InvalidIlluminantError(illuminant)
@@ -122,7 +126,7 @@ class IlluminantMixin(object):
 
             illums_observer = color_constants.ILLUMINANTS[observer]
         except KeyError:
-            raise InvalidObserverError(self)
+            raise InvalidObserverError(observer)
 
         try:
             if illuminant is None:
