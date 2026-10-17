@@ -147,7 +147,11 @@ def delta_e_cie2000(lab_color_vector, lab_color_matrix, Kl=1, Kc=1, Kh=1):
     h2p = numpy.degrees(numpy.arctan2(lab_color_matrix[:, 2], a2p))
     h2p += (h2p < 0) * 360
 
-    avg_Hp = (((numpy.fabs(h1p - h2p) > 180) * 360) + h1p + h2p) / 2.0
+    avg_Hp = (
+        h1p
+        + h2p
+        + (numpy.fabs(h1p - h2p) > 180) * numpy.where(h1p + h2p < 360, 360, -360)
+    ) / 2.0
 
     T = (
         1
@@ -158,8 +162,11 @@ def delta_e_cie2000(lab_color_vector, lab_color_matrix, Kl=1, Kc=1, Kh=1):
     )
 
     diff_h2p_h1p = h2p - h1p
-    delta_hp = diff_h2p_h1p + (numpy.fabs(diff_h2p_h1p) > 180) * 360
-    delta_hp -= (h2p > h1p) * 720
+    delta_hp = (
+        diff_h2p_h1p
+        + (diff_h2p_h1p < -180) * 360
+        - (diff_h2p_h1p > 180) * 360
+    )
 
     delta_Lp = lab_color_matrix[:, 0] - L
     delta_Cp = C2p - C1p

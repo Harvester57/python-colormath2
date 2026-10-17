@@ -179,6 +179,24 @@ class DeltaETestCase(unittest.TestCase):
                 % (result, expected, result - expected),
             )
 
+    def test_cie2000_avg_hp_wraparound(self):
+        c1 = LabColor(lab_l=50.0, lab_a=25.0, lab_b=-0.5)
+        c2 = LabColor(lab_l=50.0, lab_a=50.0, lab_b=1.5)
+        self.assertAlmostEqual(
+            delta_e_cie2000(c1, c2), 9.408905543673072, places=9
+        )
+        self.assertAlmostEqual(
+            delta_e_cie2000(c2, c1), 9.408905543673072, places=9
+        )
+        opp1 = LabColor(lab_l=50.0, lab_a=20.0, lab_b=-1.0)
+        opp2 = LabColor(lab_l=50.0, lab_a=-40.0, lab_b=2.0)
+        self.assertAlmostEqual(
+            delta_e_cie2000(opp1, opp2), 50.07876540363944, places=9
+        )
+        self.assertAlmostEqual(
+            delta_e_cie2000(opp2, opp1), 50.07876540363944, places=9
+        )
+
     def test_cie1994_negative_square_root(self):
         """
         Tests against a case where a negative square root in the delta_H
