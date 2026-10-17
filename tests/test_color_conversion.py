@@ -43,6 +43,9 @@ class GraphConversionManagerTestCase(unittest.TestCase):
             HSLColor,
         )
 
+    def test_conversion_manager_is_abstract(self):
+        self.assertRaises(TypeError, color_conversions.ConversionManager)
+
 
 class ColorConversionTestCase(unittest.TestCase):
     def test_conversion_validity(self):
